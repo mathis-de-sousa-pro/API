@@ -31,7 +31,7 @@ public class AuditServiceTests
         accessor.Setup(a => a.HttpContext).Returns(context);
 
         IConfiguration config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string> { ["Observability:Audit:Enabled"] = "true" })
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Observability:Audit:Enabled"] = "true" })
             .Build();
 
         AuditService service = new(writer.Object, clock.Object, masking.Object, accessor.Object, config);
@@ -59,7 +59,7 @@ public class AuditServiceTests
         accessor.Setup(a => a.HttpContext).Returns(new DefaultHttpContext());
 
         IConfiguration config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string> { ["Observability:Audit:Enabled"] = "false" })
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Observability:Audit:Enabled"] = "false" })
             .Build();
 
         AuditService service = new(writer.Object, clock.Object, masking.Object, accessor.Object, config);
