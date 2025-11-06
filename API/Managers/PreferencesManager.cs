@@ -1,4 +1,8 @@
-﻿using API.Controllers.InterfacesManagers;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using API.Controllers.InterfacesManagers;
 using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
 
@@ -48,7 +52,13 @@ public sealed class PreferencesManager(
             ct
         );
 
-        _audit.Log(sessionId, "ReplaceSelection", $"count={playlistIds.Count}");
+        await _audit.LogActionAsync(
+            sessionId,
+            tokenSet.ProviderUserId,
+            "preferences.replace_selection",
+            "playlist.selection",
+            new { count = playlistIds.Count },
+            ct);
     }
 
     /// <inheritdoc />
@@ -58,12 +68,13 @@ public sealed class PreferencesManager(
         EnsureSession(sessionId);
 
         int inserted = 0;
+        string? providerUserId = null;
         if (playlistIds != null && playlistIds.Count > 0)
         {
             var tokenSet = await _tokenDao.GetBySessionAsync(sessionId)
                            ?? throw new InvalidOperationException("No TokenSet for the given session.");
             string provider = "spotify";
-            string providerUserId = tokenSet.ProviderUserId ?? throw new InvalidOperationException("Missing ProviderUserId.");
+            providerUserId = tokenSet.ProviderUserId ?? throw new InvalidOperationException("Missing ProviderUserId.");
             DateTime now = _clock.GetUtcNow();
 
             await _txRunner.RunAsync(
@@ -83,7 +94,13 @@ public sealed class PreferencesManager(
             );
         }
 
-        _audit.Log(sessionId, "AddToSelection", $"added={inserted}");
+        await _audit.LogActionAsync(
+            sessionId,
+            providerUserId,
+            "preferences.add_to_selection",
+            "playlist.selection",
+            new { added = inserted },
+            ct);
     }
 
     /// <inheritdoc />
@@ -101,7 +118,13 @@ public sealed class PreferencesManager(
             );
         }
 
-        _audit.Log(sessionId, "RemoveFromSelection", $"removed={removed}");
+        await _audit.LogActionAsync(
+            sessionId,
+            null,
+            "preferences.remove_from_selection",
+            "playlist.selection",
+            new { removed },
+            ct);
     }
 
     /// <inheritdoc />
@@ -110,7 +133,13 @@ public sealed class PreferencesManager(
         EnsureSession(sessionId);
 
         await _selectionDao.DeleteBySessionAsync(sessionId);
-        _audit.Log(sessionId, "ClearSelection", "all cleared");
+        await _audit.LogActionAsync(
+            sessionId,
+            null,
+            "preferences.clear_selection",
+            "playlist.selection",
+            new { cleared = true },
+            ct);
     }
 
     /// <inheritdoc />

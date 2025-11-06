@@ -1,23 +1,23 @@
-﻿namespace API.Managers.InterfacesServices;
+using System.Threading;
+using System.Threading.Tasks;
 
-/// <summary>
-/// Interface for audit logging of authentication actions.
-/// </summary>
+namespace API.Managers.InterfacesServices;
+
 public interface IAuditService
 {
-    /// <summary>
-    /// Logs an authentication-related action.
-    /// </summary>
-    /// <param name="provider">The authentication provider name.</param>
-    /// <param name="action">The action performed (e.g., "start", "callback").</param>
-    /// <param name="details">Additional details about the action.</param>
-    void LogAuth(string provider, string action, string details);
-    
-    /// <summary>
-    /// Logs about a user playlist preference change.
-    /// </summary>
-    /// <param name="sessionId">The session identifier.</param>
-    /// <param name="action">The action performed (e.g., "add", "remove", "clear", "replace").</param>
-    /// <param name="playlistIds">Additional details about the action.</param>
-    void Log(string sessionId, string action, string playlistIds);
+    Task LogAuthAsync(
+        string provider,
+        string action,
+        object? metadata = null,
+        string? sessionId = null,
+        string? userId = null,
+        CancellationToken ct = default);
+
+    Task LogActionAsync(
+        string? sessionId,
+        string? userId,
+        string action,
+        string? target,
+        object? metadata,
+        CancellationToken ct = default);
 }

@@ -1,6 +1,8 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using API.DTO;
 using API.Errors;
 using Api.Managers.InterfacesHelpers;
@@ -75,7 +77,7 @@ public class SpotifyOAuthHelper(
 
         string providerUserId = await FetchSpotifyUserIdAsync(accessToken);
 
-        _audit.LogAuth("spotify", "AuthSuccess", "UserId=" + providerUserId);
+        await _audit.LogAuthAsync("spotify", "auth_success", new { userId = providerUserId }, userId: providerUserId);
         return new TokenInfo(accessToken, refreshToken, accessExpiresAt, scope, providerUserId);
     }
 
@@ -182,13 +184,13 @@ public class SpotifyOAuthHelper(
         }
         catch (Exception ex)
         {
-            _audit.LogAuth("spotify", "TokenExchange.NetworkError", ex.Message);
+            await _audit.LogAuthAsync("spotify", "token_exchange.network_error", ex.Message).ConfigureAwait(false);
             throw new TokenExchangeFailedException("Network error during token exchange.", ex);
         }
 
         string payload = await resp.Content.ReadAsStringAsync();
         if (!resp.IsSuccessStatusCode)
-            HandleTokenRequestError(resp, payload);
+            await HandleTokenRequestErrorAsync(resp, payload).ConfigureAwait(false);
 
         try
         {
@@ -196,7 +198,7 @@ public class SpotifyOAuthHelper(
         }
         catch (Exception ex)
         {
-            _audit.LogAuth("spotify", "TokenExchange.ParseError", ex.Message);
+            await _audit.LogAuthAsync("spotify", "token_exchange.parse_error", ex.Message).ConfigureAwait(false);
             throw new TokenExchangeFailedException("Failed to parse token response.", ex);
         }
     }
@@ -204,10 +206,10 @@ public class SpotifyOAuthHelper(
     /// <summary>
     /// Handles errors returned by the Spotify token endpoint.
     /// </summary>
-    private void HandleTokenRequestError(HttpResponseMessage resp, string payload)
+    private async Task HandleTokenRequestErrorAsync(HttpResponseMessage resp, string payload)
     {
         string detail = "HTTP " + ((int)resp.StatusCode).ToString() + " payload: " + payload;
-        _audit.LogAuth("spotify", "TokenExchange.HttpError", detail);
+        await _audit.LogAuthAsync("spotify", "token_exchange.http_error", detail).ConfigureAwait(false);
 
         if ((int)resp.StatusCode == 400)
             throw new TokenExchangeFailedException("Invalid authorization code or PKCE verifier.");
@@ -254,7 +256,7 @@ public class SpotifyOAuthHelper(
         }
         catch (Exception ex)
         {
-            _audit.LogAuth("spotify", "Me.NetworkError", ex.Message);
+            await _audit.LogAuthAsync("spotify", "me.network_error", ex.Message).ConfigureAwait(false);
             throw new TokenExchangeFailedException("Network error fetching Spotify profile.", ex);
         }
 
@@ -262,7 +264,7 @@ public class SpotifyOAuthHelper(
         if (!resp.IsSuccessStatusCode)
         {
             string detail = "HTTP " + ((int)resp.StatusCode).ToString() + " payload: " + payload;
-            _audit.LogAuth("spotify", "Me.HttpError", detail);
+            await _audit.LogAuthAsync("spotify", "me.http_error", detail).ConfigureAwait(false);
             throw new TokenExchangeFailedException("Failed to fetch Spotify user profile.");
         }
 
@@ -276,7 +278,7 @@ public class SpotifyOAuthHelper(
         }
         catch (Exception ex)
         {
-            _audit.LogAuth("spotify", "Me.ParseError", ex.Message);
+            await _audit.LogAuthAsync("spotify", "me.parse_error", ex.Message).ConfigureAwait(false);
             throw new TokenExchangeFailedException("Failed to parse Spotify user profile.", ex);
         }
     }
