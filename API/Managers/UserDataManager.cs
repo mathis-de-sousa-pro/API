@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 using API.Controllers.InterfacesManagers;
 using API.DTO;
 using API.Errors.Exceptions;
@@ -7,6 +9,7 @@ using Api.Managers.InterfacesHelpers;
 using API.Managers.InterfacesHelpers;
 using API.Managers.InterfacesServices;
 using Api.Models;
+using Microsoft.Extensions.Logging;
 
 namespace API.Managers;
 
@@ -21,7 +24,8 @@ public sealed class UserDataManager(
     ISpotifyOAuthHelper spotifyOAuthHelper,
     ISpotifyApiHelper spotifyApiHelper,
     IClockService clock,
-    IConfigService config)
+    IConfigService config,
+    ILogger<UserDataManager> logger)
     : IUserDataManager
 {
     private readonly ITokenDao _tokenDao = tokenDao ?? throw new ArgumentNullException(nameof(tokenDao));
@@ -40,6 +44,7 @@ public sealed class UserDataManager(
 
     private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly IConfigService _config = config ?? throw new ArgumentNullException(nameof(config));
+    private readonly ILogger<UserDataManager> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <inheritdoc />
     public async Task<PlaylistPageDto> GetPlaylistsAsync(string sessionId, string? pageToken,
@@ -72,6 +77,16 @@ public sealed class UserDataManager(
             await _tokenDao.UpdateAfterRefreshAsync(sessionId, effectiveRefresh, refreshed.AccessExpiresAtUtc, ct);
         }
 
+        int? savedTracksTotal = null;
+        try
+        {
+            savedTracksTotal = await _spotifyApiHelper.GetSavedTracksTotalAsync(accessToken, ct);
+        }
+        catch (RecoverableSpotifyApiException ex)
+        {
+            _logger.LogDebug(ex, "Skipping liked songs pseudo-playlist due to recoverable Spotify API error.");
+        }
+
         PlaylistPageDto result;
         string? cachedJson = await _playlistCacheDao.GetPageJsonAsync(sessionId, normalizedPageToken, nowUtc, ct);
 
@@ -101,6 +116,48 @@ public sealed class UserDataManager(
             result = livePage;
         }
 
+        result = EnsureItemsList(result);
+
+        if (savedTracksTotal.HasValue)
+        {
+            const string likedPlaylistId = "liked-saved-tracks";
+            bool alreadyPresent = result.Items.Any(
+                i => string.Equals(i.PlaylistId, likedPlaylistId, StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (!alreadyPresent)
+            {
+                var liked = new PlaylistItemDto
+                {
+                    PlaylistId = likedPlaylistId,
+                    Name = "Liked Songs",
+                    ImageUrl = null,
+                    Owner = providerUserId,
+                    TrackCount = savedTracksTotal.Value,
+                    Selected = false
+                };
+
+                result.Items.Insert(0, liked);
+                _logger.LogDebug(
+                    "Prepended liked songs pseudo-playlist with {TrackCount} tracks for user {ProviderUserId}.",
+                    savedTracksTotal.Value,
+                    providerUserId
+                );
+            }
+        }
+
         return result;
+    }
+
+    private static PlaylistPageDto EnsureItemsList(PlaylistPageDto page)
+    {
+        if (page.Items is not null)
+            return page;
+
+        return new PlaylistPageDto
+        {
+            Items = new List<PlaylistItemDto>(),
+            NextPageToken = page.NextPageToken
+        };
     }
 }

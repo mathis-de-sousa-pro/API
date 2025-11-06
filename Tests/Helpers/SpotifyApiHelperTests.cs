@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.Json;
 using API.DTO;
+using API.Errors.Exceptions;
 using API.Helpers;
 using API.Managers.InterfacesServices;
 using Moq;
@@ -478,5 +479,60 @@ public class SpotifyApiHelperTests
         Assert.Contains("offset=20", capturedRequest.RequestUri.ToString());
         Assert.Equal("Bearer", capturedRequest.Headers.Authorization.Scheme);
         Assert.Equal(accessToken, capturedRequest.Headers.Authorization.Parameter);
+    }
+
+    [Fact]
+    public async Task GetSavedTracksTotalAsync_ParsesTotal()
+    {
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent("{\"total\": 42}")
+            });
+
+        var client = new HttpClient(handler.Object)
+        {
+            BaseAddress = new Uri("https://api.spotify.com/v1/")
+        };
+
+        var helper = new SpotifyApiHelper(client, _config.Object);
+
+        int total = await helper.GetSavedTracksTotalAsync("token");
+
+        Assert.Equal(42, total);
+    }
+
+    [Theory]
+    [InlineData(429)]
+    [InlineData(500)]
+    public async Task GetSavedTracksTotalAsync_Handles429Or5xx(int statusCode)
+    {
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = (HttpStatusCode)statusCode
+            });
+
+        var client = new HttpClient(handler.Object)
+        {
+            BaseAddress = new Uri("https://api.spotify.com/v1/")
+        };
+
+        var helper = new SpotifyApiHelper(client, _config.Object);
+
+        await Assert.ThrowsAsync<RecoverableSpotifyApiException>(() => helper.GetSavedTracksTotalAsync("token"));
     }
 }

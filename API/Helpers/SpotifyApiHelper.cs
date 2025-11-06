@@ -1,6 +1,8 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using API.DTO;
+using API.Errors.Exceptions;
 using API.Managers.InterfacesHelpers;
 using API.Managers.InterfacesServices;
 
@@ -138,5 +140,40 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
             Offset = spotifyResponse.Offset,
             Tracks = tracks
         };
+    }
+
+    /// <inheritdoc />
+    public async Task<int> GetSavedTracksTotalAsync(string accessToken, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken))
+            throw new ArgumentException("accessToken cannot be null or empty.", nameof(accessToken));
+
+        const string url = "me/tracks?limit=1&offset=0";
+        using HttpRequestMessage req = CreateAuthRequest(url, accessToken);
+        using HttpResponseMessage resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                throw new UnauthorizedAccessException("Spotify access token is invalid or expired.");
+
+            int statusCode = (int)resp.StatusCode;
+            if (resp.StatusCode == (HttpStatusCode)429 || (statusCode >= 500 && statusCode <= 599))
+                throw new RecoverableSpotifyApiException(
+                    $"Spotify returned {(int)resp.StatusCode} ({resp.StatusCode}) when fetching saved tracks total."
+                );
+
+            throw new HttpRequestException(
+                $"Failed to retrieve saved tracks total. Status code: {(int)resp.StatusCode} ({resp.StatusCode})."
+            );
+        }
+
+        await using Stream stream = await resp.Content.ReadAsStreamAsync(ct);
+        using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+
+        if (doc.RootElement.TryGetProperty("total", out JsonElement totalElement) && totalElement.TryGetInt32(out int total))
+            return total;
+
+        throw new InvalidOperationException("Spotify saved tracks response did not contain a total value.");
     }
 }

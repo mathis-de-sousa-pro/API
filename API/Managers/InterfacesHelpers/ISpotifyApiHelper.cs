@@ -25,5 +25,12 @@ namespace API.Managers.InterfacesHelpers
         /// <returns>A DTO containing the playlist’s tracks.</returns>
         public Task<PlaylistTracksDTO> GetPlaylistTracks(string accessToken, string playlistId, int? offset,
             CancellationToken ct = default);
+
+        /// <summary>
+        /// Retrieves the total number of tracks saved in the current user's library.
+        /// </summary>
+        /// <param name="accessToken">Bearer access token.</param>
+        /// <param name="ct">Cancellation token.</param>
+        Task<int> GetSavedTracksTotalAsync(string accessToken, CancellationToken ct = default);
     }
 }
