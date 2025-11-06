@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using API.DAO;
 using API.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -12,22 +13,16 @@ namespace API.Services.Audit;
 public sealed class ObservabilityBackgroundWorker : BackgroundService
 {
     private readonly AuditWriter _writer;
-    private readonly IRequestLogDao _requestDao;
-    private readonly IErrorEventDao _errorDao;
-    private readonly IAuditEventDao _auditDao;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ObservabilityBackgroundWorker> _logger;
 
     public ObservabilityBackgroundWorker(
         AuditWriter writer,
-        IRequestLogDao requestDao,
-        IErrorEventDao errorDao,
-        IAuditEventDao auditDao,
+        IServiceScopeFactory scopeFactory,
         ILogger<ObservabilityBackgroundWorker> logger)
     {
         _writer = writer ?? throw new ArgumentNullException(nameof(writer));
-        _requestDao = requestDao ?? throw new ArgumentNullException(nameof(requestDao));
-        _errorDao = errorDao ?? throw new ArgumentNullException(nameof(errorDao));
-        _auditDao = auditDao ?? throw new ArgumentNullException(nameof(auditDao));
+        _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -37,16 +32,28 @@ public sealed class ObservabilityBackgroundWorker : BackgroundService
         {
             try
             {
+                using IServiceScope scope = _scopeFactory.CreateScope();
+                IServiceProvider services = scope.ServiceProvider;
+
                 switch (item)
                 {
                     case RequestLog requestLog:
-                        await _requestDao.InsertAsync(requestLog, stoppingToken).ConfigureAwait(false);
+                        await services
+                            .GetRequiredService<IRequestLogDao>()
+                            .InsertAsync(requestLog, stoppingToken)
+                            .ConfigureAwait(false);
                         break;
                     case ErrorRecord errorRecord:
-                        await _errorDao.InsertAsync(errorRecord, stoppingToken).ConfigureAwait(false);
+                        await services
+                            .GetRequiredService<IErrorEventDao>()
+                            .InsertAsync(errorRecord, stoppingToken)
+                            .ConfigureAwait(false);
                         break;
                     case AuditRecord auditRecord:
-                        await _auditDao.InsertAsync(auditRecord, stoppingToken).ConfigureAwait(false);
+                        await services
+                            .GetRequiredService<IAuditEventDao>()
+                            .InsertAsync(auditRecord, stoppingToken)
+                            .ConfigureAwait(false);
                         break;
                     default:
                         _logger.LogWarning("Unknown observability payload type {Type}", item.GetType().Name);
