@@ -1,7 +1,5 @@
 ﻿namespace Api.Models
 {
-    using System;
-
     /// <summary>
     /// Represents a PKCE entry for OAuth authentication.
     /// </summary>

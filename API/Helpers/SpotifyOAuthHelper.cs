@@ -1,8 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using API.DTO;
 using API.Errors;
 using Api.Managers.InterfacesHelpers;
@@ -208,7 +206,7 @@ public class SpotifyOAuthHelper(
     /// </summary>
     private async Task HandleTokenRequestErrorAsync(HttpResponseMessage resp, string payload)
     {
-        string detail = "HTTP " + ((int)resp.StatusCode).ToString() + " payload: " + payload;
+        string detail = "HTTP " + ((int)resp.StatusCode) + " payload: " + payload;
         await _audit.LogAuthAsync("spotify", "token_exchange.http_error", detail).ConfigureAwait(false);
 
         if ((int)resp.StatusCode == 400)
@@ -263,7 +261,7 @@ public class SpotifyOAuthHelper(
         string payload = await resp.Content.ReadAsStringAsync();
         if (!resp.IsSuccessStatusCode)
         {
-            string detail = "HTTP " + ((int)resp.StatusCode).ToString() + " payload: " + payload;
+            string detail = "HTTP " + ((int)resp.StatusCode) + " payload: " + payload;
             await _audit.LogAuthAsync("spotify", "me.http_error", detail).ConfigureAwait(false);
             throw new TokenExchangeFailedException("Failed to fetch Spotify user profile.");
         }

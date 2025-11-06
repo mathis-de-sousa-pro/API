@@ -1,7 +1,8 @@
 ﻿using System.Data.Common;
 using Api.Managers.InterfacesDao;
-using API.Managers.InterfacesServices; // ISqlConnectionFactory
+using API.Managers.InterfacesServices;
 using Api.Models;
+// ISqlConnectionFactory
 
 namespace API.DAO;
 

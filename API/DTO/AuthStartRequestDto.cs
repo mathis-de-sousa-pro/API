@@ -1,8 +1,5 @@
 ﻿namespace API.DTO;
 
-using System;
-using System.Collections.Generic;
-
 /// <summary>
 /// DTO for starting an authentication request with specified scopes.
 /// </summary>

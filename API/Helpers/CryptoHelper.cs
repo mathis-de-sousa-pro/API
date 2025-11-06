@@ -1,6 +1,4 @@
-#nullable enable
-
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using Api.Managers.InterfacesHelpers;
 

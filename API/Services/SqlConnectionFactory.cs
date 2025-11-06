@@ -1,5 +1,6 @@
 ﻿using System.Data.Common;
 using API.Managers.InterfacesServices;
+using MySqlConnector;
 
 public class SqlConnectionFactory : ISqlConnectionFactory
 {
@@ -18,7 +19,7 @@ public class SqlConnectionFactory : ISqlConnectionFactory
         _connectionString = connectionString;
     }
 
-    public DbConnection Create() => new MySqlConnector.MySqlConnection(_connectionString);
+    public DbConnection Create() => new MySqlConnection(_connectionString);
 
     public async Task<DbConnection> CreateOpenAsync(CancellationToken ct = default)
     {

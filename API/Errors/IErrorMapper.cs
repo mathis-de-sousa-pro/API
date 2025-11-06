@@ -1,7 +1,5 @@
 ﻿namespace API.Errors;
 
-using System;
-
 /// <summary>
 /// Defines a contract for mapping exceptions to standardized <see cref="ApiError"/> responses.
 /// </summary>

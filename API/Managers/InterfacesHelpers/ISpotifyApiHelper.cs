@@ -1,6 +1,4 @@
-#nullable enable
-
-using API.DTO;
+﻿using API.DTO;
 
 namespace API.Managers.InterfacesHelpers;
 

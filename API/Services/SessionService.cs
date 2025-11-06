@@ -1,6 +1,4 @@
-#nullable enable
-
-using System.Data.Common;
+﻿using System.Data.Common;
 using Api.Managers.InterfacesDao;
 using Api.Managers.InterfacesServices;
 using API.Managers.InterfacesServices;

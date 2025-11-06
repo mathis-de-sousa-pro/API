@@ -1,7 +1,4 @@
-#nullable enable
-
-using System.Net;
-using System.Net.Http;
+﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using API.DTO;

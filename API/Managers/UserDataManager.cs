@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
+﻿using System.Text.Json;
 using API.Controllers.InterfacesManagers;
 using API.DTO;
 using API.Errors.Exceptions;
@@ -9,7 +7,6 @@ using Api.Managers.InterfacesHelpers;
 using API.Managers.InterfacesHelpers;
 using API.Managers.InterfacesServices;
 using Api.Models;
-using Microsoft.Extensions.Logging;
 
 namespace API.Managers;
 

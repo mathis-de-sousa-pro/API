@@ -2,17 +2,18 @@ using API.Controllers.InterfacesManagers;
 using API.DAO;
 using API.Errors;
 using API.Helpers;
-using API.Managers; // si tu as un dossier Helpers dans le namespace API.Services, ajuste l’using
+using API.Managers;
 using Api.Managers.InterfacesDao;
 using Api.Managers.InterfacesHelpers;
 using API.Managers.InterfacesHelpers;
 using Api.Managers.InterfacesServices;
 using API.Managers.InterfacesServices;
+using API.Middleware;
 using API.Services;
 using API.Services.Audit;
 using API.Services.Masking;
-using API.Middleware;
 using Microsoft.AspNetCore.HttpOverrides;
+// si tu as un dossier Helpers dans le namespace API.Services, ajuste l’using
 
 // -----------------------------
 // Program.cs (.NET 8, top-level)
@@ -48,23 +49,23 @@ builder.Services.AddHttpClient("spotify-oauth", client => { client.Timeout = Tim
 IConfiguration cfg = builder.Configuration;
 IConfigService configService = new ConfigService(
     spotifyBaseUrl: cfg.GetValue<string>("Spotify:BaseUrl", "https://api.spotify.com/v1") ??
-                    throw new ArgumentNullException($"Spotify:BaseUrl configuration is missing."),
+                    throw new ArgumentNullException("Spotify:BaseUrl configuration is missing."),
     spotifyPlaylistPageSize: cfg.GetValue("Spotify:PlaylistsPageSize", 20) switch
     {
-        <= 0 => throw new ArgumentOutOfRangeException($"Spotify:PlaylistsPageSize must be positive."),
-        > 50 => throw new ArgumentOutOfRangeException($"Spotify:PlaylistsPageSize cannot exceed 50."),
+        <= 0 => throw new ArgumentOutOfRangeException("Spotify:PlaylistsPageSize must be positive."),
+        > 50 => throw new ArgumentOutOfRangeException("Spotify:PlaylistsPageSize cannot exceed 50."),
         var v => v
     },
     spotifyCacheTtlMinutes: cfg.GetValue("Spotify:CacheTtlMinutes", 60),
-    spotifyClientId: cfg["Spotify:ClientId"] ?? throw new ArgumentNullException($"Spotify:ClientId configuration is missing."),
+    spotifyClientId: cfg["Spotify:ClientId"] ?? throw new ArgumentNullException("Spotify:ClientId configuration is missing."),
     spotifyRedirectUri: cfg["Spotify:RedirectUri"] ??
-                        throw new ArgumentNullException($"Spotify:RedirectUri configuration is missing."),
+                        throw new ArgumentNullException("Spotify:RedirectUri configuration is missing."),
     spotifyAuthorizeEndpoint: cfg.GetValue<string>("Spotify:AuthorizeEndpoint", "https://accounts.spotify.com/authorize") ??
-                              throw new ArgumentNullException($"Spotify:AuthorizeEndpoint configuration is missing."),
+                              throw new ArgumentNullException("Spotify:AuthorizeEndpoint configuration is missing."),
     spotifyTokenEndpoint: cfg.GetValue<string>("Spotify:TokenEndpoint", "https://accounts.spotify.com/api/token") ??
-                          throw new ArgumentNullException($"Spotify:TokenEndpoint configuration is missing."),
+                          throw new ArgumentNullException("Spotify:TokenEndpoint configuration is missing."),
     deeplinkSchemeHost: cfg.GetValue<string>("Deeplink:SchemeHost", "swipez://oauth-callback/spotify") ??
-                        throw new ArgumentNullException($"Deeplink:SchemeHost configuration is missing."),
+                        throw new ArgumentNullException("Deeplink:SchemeHost configuration is missing."),
     pkceTtlMinutes: cfg.GetValue("Security:PkceTtlMinutes", 10),
     sessionTtlMinutes: cfg.GetValue("Security:SessionTtlMinutes", 60)
 );

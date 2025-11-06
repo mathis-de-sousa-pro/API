@@ -1,7 +1,7 @@
-﻿using API.Services;
-using Api.Managers.InterfacesDao;
+﻿using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
 using Api.Models;
+using API.Services;
 using Moq;
 
 namespace Tests.Services

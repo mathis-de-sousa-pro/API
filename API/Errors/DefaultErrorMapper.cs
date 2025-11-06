@@ -1,6 +1,4 @@
-using System.Net.Http;
-using System.Threading.Tasks;
-using API.Errors.Exceptions;
+﻿using API.Errors.Exceptions;
 
 namespace API.Errors;
 

@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Data.Common;
 using API.Managers;
 using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
+using Api.Models;
 using Moq;
 
 namespace Tests.Managers;
@@ -46,7 +43,7 @@ public class PreferencesManagerTests
 
         var sessionId = "session";
         var playlistIds = new List<string> { "id1", "id2" };
-        var tokenSet = new Mock<Api.Models.TokenSet>(
+        var tokenSet = new Mock<TokenSet>(
             1,
             "Spotify",
             "user",
@@ -93,7 +90,7 @@ public class PreferencesManagerTests
 
         var sessionId = "session";
         var playlistIds = new List<string> { "id1", "id2" };
-        var tokenSet = new Mock<Api.Models.TokenSet>(
+        var tokenSet = new Mock<TokenSet>(
             1,
             "Spotify",
             "user",

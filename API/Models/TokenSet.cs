@@ -1,7 +1,5 @@
 ﻿namespace Api.Models
 {
-    using System;
-
     /// <summary>
     /// Represents a set of OAuth tokens for a user and provider.
     /// </summary>

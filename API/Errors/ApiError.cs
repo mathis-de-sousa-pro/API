@@ -1,7 +1,5 @@
 ﻿namespace API.Errors;
 
-using System;
-
 /// <summary>
 /// Represents a standardized API error with code, message, correlation ID, timestamp, and details.
 /// </summary>

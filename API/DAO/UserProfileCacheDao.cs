@@ -1,6 +1,6 @@
-﻿using Api.Managers.InterfacesDao;
+﻿using System.Data.Common;
+using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
-using System.Data.Common;
 
 namespace API.DAO;
 

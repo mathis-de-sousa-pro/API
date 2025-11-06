@@ -1,6 +1,4 @@
-#nullable enable
-
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.Json;
 using API.DTO;
@@ -120,7 +118,7 @@ public class SpotifyApiHelperTests
             Offset = 0,
             Items =
             [
-                new SpotifyTrackItem()
+                new SpotifyTrackItem
                 {
                     Track = new SpotifyTrack
                     {
@@ -135,7 +133,7 @@ public class SpotifyApiHelperTests
                             Id = "album1",
                             Images =
                             [
-                                new SpotifyImage() { Url = "https://example.com/image.jpg" }
+                                new SpotifyImage { Url = "https://example.com/image.jpg" }
                             ]
                         }
                     }
@@ -268,7 +266,7 @@ public class SpotifyApiHelperTests
         var helper = new SpotifyApiHelper(client, _config.Object);
 
         // Act & Assert
-        ArgumentException exception =
+        InvalidOperationException exception =
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 helper.GetPlaylistTracksAsync(accessToken, playlistId, 0)
             );
@@ -288,7 +286,7 @@ public class SpotifyApiHelperTests
             Offset = 0,
             Items =
             [
-                new SpotifyTrackItem()
+                new SpotifyTrackItem
                 {
                     Track = new SpotifyTrack
                     {
@@ -351,8 +349,8 @@ public class SpotifyApiHelperTests
             Offset = 0,
             Items =
             [
-                new SpotifyTrackItem() { Track = null },
-                new SpotifyTrackItem()
+                new SpotifyTrackItem { Track = null },
+                new SpotifyTrackItem
                 {
                     Track = new SpotifyTrack
                     {

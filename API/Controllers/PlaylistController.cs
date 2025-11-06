@@ -1,7 +1,5 @@
 using API.Controllers.InterfacesManagers;
 using API.DTO;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers

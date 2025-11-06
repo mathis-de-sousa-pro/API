@@ -1,6 +1,4 @@
-#nullable enable
-
-using Api.Managers.InterfacesDao;
+﻿using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
 
 namespace API.Services;

@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Primitives;
 
 namespace API.Services.Masking;
 
@@ -45,7 +41,7 @@ public sealed class MaskingHelper : IMaskingHelper
         ArgumentNullException.ThrowIfNull(headers);
 
         Dictionary<string, string> sanitized = new(StringComparer.OrdinalIgnoreCase);
-        foreach ((string key, Microsoft.Extensions.Primitives.StringValues value) in headers)
+        foreach ((string key, StringValues value) in headers)
         {
             string joined = string.Join(";", value);
             sanitized[key] = _redactHeaders.Contains(key) ? "***" : Mask(joined);

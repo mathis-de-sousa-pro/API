@@ -1,7 +1,5 @@
 ﻿namespace API.DTO;
 
-using System;
-
 /// <summary>
 /// Data Transfer Object (DTO) containing information about OAuth tokens and related metadata.
 /// </summary>

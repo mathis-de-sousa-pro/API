@@ -1,7 +1,4 @@
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace API.Managers.InterfacesServices;
+﻿namespace API.Managers.InterfacesServices;
 
 public interface IAuditService
 {
