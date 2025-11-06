@@ -9,6 +9,9 @@ using API.Managers.InterfacesHelpers;
 using Api.Managers.InterfacesServices;
 using API.Managers.InterfacesServices;
 using API.Services;
+using API.Services.Audit;
+using API.Services.Masking;
+using API.Middleware;
 using Microsoft.AspNetCore.HttpOverrides;
 
 // -----------------------------
@@ -21,6 +24,7 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpContextAccessor();
 
 // CORS (au besoin pour tests; adapte la policy)
 builder.Services.AddCors(options =>
@@ -69,8 +73,12 @@ builder.Services.AddSingleton(configService);
 
 // Horloge / Audit / Ids
 builder.Services.AddSingleton<IClockService, ClockService>();
+builder.Services.AddSingleton<IMaskingHelper, MaskingHelper>();
+builder.Services.AddSingleton<AuditWriter>();
+builder.Services.AddSingleton<IAuditWriter>(sp => sp.GetRequiredService<AuditWriter>());
 builder.Services.AddSingleton<IAuditService, AuditService>();
 builder.Services.AddSingleton<IIdGenerator, IdGenerator>();
+builder.Services.AddHostedService<ObservabilityBackgroundWorker>();
 
 // MySQL connection factory
 string connectionString = cfg.GetConnectionString("Default");
@@ -87,6 +95,9 @@ builder.Services.AddScoped<IPlaylistSelectionDao, PlaylistSelectionDao>();
 builder.Services.AddScoped<IPlaylistCacheDao, PlaylistCacheDao>();
 builder.Services.AddScoped<IUserProfileCacheDao, UserProfileCacheDao>();
 builder.Services.AddScoped<IDenylistedRefreshDao, DenylistedRefreshDao>();
+builder.Services.AddScoped<IRequestLogDao, RequestLogDao>();
+builder.Services.AddScoped<IErrorEventDao, ErrorEventDao>();
+builder.Services.AddScoped<IAuditEventDao, AuditEventDao>();
 
 
 // Services métier
@@ -137,7 +148,8 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 
 // Global error handling middleware
-app.UseMiddleware<API.Middleware.ErrorHandlingMiddleware>();
+app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 

@@ -1,4 +1,8 @@
-﻿using API.Controllers.InterfacesManagers;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using API.Controllers.InterfacesManagers;
 using API.DTO;
 using API.Errors;
 using Api.Managers.InterfacesDao;
@@ -164,6 +168,11 @@ public class AuthManager(
             }
         );
 
-        _audit.LogAuth("spotify", "SpotifyLogout", "purge DB + denylist");
+        await _audit.LogAuthAsync(
+            "spotify",
+            "logout",
+            new { reason = "purge DB + denylist" },
+            sessionId,
+            tokenSet?.ProviderUserId);
     }
 }

@@ -1,14 +1,41 @@
-﻿using System.Data.Common;
+using System;
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
 using API.Managers;
 using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
-using API.Services;
 using Moq;
 
 namespace Tests.Managers;
 
 public class PreferencesManagerTests
 {
+    private static Mock<IAuditService> CreateAuditMock()
+    {
+        var mock = new Mock<IAuditService>();
+        mock.Setup(
+                a => a.LogActionAsync(
+                    It.IsAny<string?>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mock.Setup(
+                a => a.LogAuthAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return mock;
+    }
+
     [Fact]
     public async Task ReplaceSelectionAsync_ReplacesSelection()
     {
@@ -33,6 +60,8 @@ public class PreferencesManagerTests
         tokenDao.Setup(d => d.GetBySessionAsync(sessionId)).ReturnsAsync(tokenSet);
         clock.Setup(c => c.GetUtcNow()).Returns(DateTime.UtcNow);
 
+        var audit = CreateAuditMock();
+
         txRunner
             .Setup(t => t.RunAsync(
                     It.IsAny<Func<DbConnection, DbTransaction, Task>>(),
@@ -45,7 +74,7 @@ public class PreferencesManagerTests
             selectionDao.Object,
             tokenDao.Object,
             txRunner.Object,
-            new AuditService(),
+            audit.Object,
             clock.Object
         );
 
@@ -78,6 +107,8 @@ public class PreferencesManagerTests
         tokenDao.Setup(d => d.GetBySessionAsync(sessionId)).ReturnsAsync(tokenSet);
         clock.Setup(c => c.GetUtcNow()).Returns(DateTime.UtcNow);
 
+        var audit = CreateAuditMock();
+
         txRunner
             .Setup(t => t.RunAsync(
                     It.IsAny<Func<DbConnection, DbTransaction, Task>>(),
@@ -104,7 +135,7 @@ public class PreferencesManagerTests
             selectionDao.Object,
             tokenDao.Object,
             txRunner.Object,
-            new AuditService(),
+            audit.Object,
             clock.Object
         );
 
@@ -122,11 +153,12 @@ public class PreferencesManagerTests
         var clock = new Mock<IClockService>();
 
         var sessionId = "session";
+        var audit = CreateAuditMock();
         var manager = new PreferencesManager(
             selectionDao.Object,
             tokenDao.Object,
             txRunner.Object,
-            new AuditService(),
+            audit.Object,
             clock.Object
         );
 
@@ -145,11 +177,12 @@ public class PreferencesManagerTests
         var clock = new Mock<IClockService>();
 
         var sessionId = "session";
+        var audit = CreateAuditMock();
         var manager = new PreferencesManager(
             selectionDao.Object,
             tokenDao.Object,
             txRunner.Object,
-            new AuditService(),
+            audit.Object,
             clock.Object
         );
 
@@ -169,12 +202,13 @@ public class PreferencesManagerTests
 
         var sessionId = "session";
         selectionDao.Setup(d => d.DeleteBySessionAsync(sessionId)).Returns(Task.CompletedTask);
+        var audit = CreateAuditMock();
 
         var manager = new PreferencesManager(
             selectionDao.Object,
             tokenDao.Object,
             txRunner.Object,
-            new AuditService(),
+            audit.Object,
             clock.Object
         );
 
@@ -194,12 +228,13 @@ public class PreferencesManagerTests
         var sessionId = "session";
         var ids = new List<string> { "id1", "id2" };
         selectionDao.Setup(d => d.GetIdsBySessionAsync(sessionId)).ReturnsAsync(ids);
+        var audit = CreateAuditMock();
 
         var manager = new PreferencesManager(
             selectionDao.Object,
             tokenDao.Object,
             txRunner.Object,
-            new AuditService(),
+            audit.Object,
             clock.Object
         );
 
@@ -216,11 +251,12 @@ public class PreferencesManagerTests
         var txRunner = new Mock<ITransactionRunner>();
         var clock = new Mock<IClockService>();
 
+        var audit = CreateAuditMock();
         var manager = new PreferencesManager(
             selectionDao.Object,
             tokenDao.Object,
             txRunner.Object,
-            new AuditService(),
+            audit.Object,
             clock.Object
         );
 

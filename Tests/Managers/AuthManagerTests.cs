@@ -1,4 +1,9 @@
-﻿using System.Data.Common;
+﻿using System;
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Data.Common;
 using API.DTO;
 using API.Errors;
 using API.Managers;
@@ -51,6 +56,25 @@ public class AuthManagerTests
         _config.Setup(c => c.GetSpotifyClientId()).Returns("client123");
         _config.Setup(c => c.GetSpotifyRedirectUri()).Returns("https://cb");
 
+
+        _audit
+            .Setup(a => a.LogAuthAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _audit
+            .Setup(a => a.LogActionAsync(
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         // Le runner exécute le délégué avec des objets factices non nuls
         _txRunner
             .Setup(r => r.RunInTransaction(It.IsAny<Func<DbConnection, DbTransaction, Task>>()))
@@ -285,7 +309,15 @@ public class AuthManagerTests
             Times.Once
         );
         _session.Verify(s => s.DeleteAsync(sessionId, It.IsAny<DbConnection>(), It.IsAny<DbTransaction>()), Times.Once);
-        _audit.Verify(a => a.LogAuth("spotify", "SpotifyLogout", "purge DB + denylist"), Times.Once);
+        _audit.Verify(
+            a => a.LogAuthAsync(
+                "spotify",
+                "logout",
+                It.Is<object?>(o => o is not null),
+                sessionId,
+                "puid-1",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -327,6 +359,14 @@ public class AuthManagerTests
         );
         _session.Verify(s => s.DeleteAsync(sessionId, It.IsAny<DbConnection>(), It.IsAny<DbTransaction>()), Times.Once);
 
-        _audit.Verify(a => a.LogAuth("spotify", "SpotifyLogout", "purge DB + denylist"), Times.Once);
+        _audit.Verify(
+            a => a.LogAuthAsync(
+                "spotify",
+                "logout",
+                It.Is<object?>(o => o is not null),
+                sessionId,
+                null,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }
