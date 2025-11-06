@@ -1,11 +1,7 @@
-using System;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using API.Managers.InterfacesServices;
 using API.Models;
 using API.Services.Masking;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 
 namespace API.Middleware;
 

@@ -1,14 +1,8 @@
-using System;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using System.Text.Json;
 using API.Errors;
 using API.Managers.InterfacesServices;
 using API.Models;
 using API.Services.Masking;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace API.Middleware;
 

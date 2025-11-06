@@ -1,4 +1,4 @@
-﻿using API.Controllers.InterfacesManagers;
+using API.Controllers.InterfacesManagers;
 using API.DTO;
 using API.Managers.InterfacesHelpers;
 using API.Services;
@@ -39,16 +39,16 @@ public class PlaylistManager : IPlaylistManager
         string cacheKey = $"playlist_offset_{sessionId}_{playlistId}";
         int currentOffset = offset ?? _memoryCache.Get<int?>(cacheKey) ?? 0;
         string accessToken = await _tokenService.GetAccessTokenAsync(sessionId, ct);
-        PlaylistTracksDTO res = await _spotifyApiHelper.GetPlaylistTracks(accessToken, playlistId, currentOffset, ct);
+        PlaylistTracksDTO result = await _spotifyApiHelper.GetPlaylistTracksAsync(accessToken, playlistId, currentOffset, ct);
 
-        int? nextOffset = currentOffset + res.Limit;
+        int? nextOffset = currentOffset + result.Limit;
 
         _memoryCache.Set(cacheKey, nextOffset, TimeSpan.FromDays(2));
 
-        res.Offset = currentOffset;
-        res.NextOffset = nextOffset;
+        result.Offset = currentOffset;
+        result.NextOffset = nextOffset;
         
-        return res;
+        return result;
     }
 
 }

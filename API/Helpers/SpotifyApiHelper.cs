@@ -16,6 +16,10 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
 {
     private readonly HttpClient _http = http ?? throw new ArgumentNullException(nameof(http));
     private readonly IConfigService _config = config ?? throw new ArgumentNullException(nameof(config));
+    private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     /// <inheritdoc />
     public async Task<PlaylistPageDto> GetPlaylistsAsync(string accessToken, string? pageToken,
@@ -26,12 +30,12 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
 
         string url = BuildPlaylistsUrl(pageToken);
 
-        using HttpRequestMessage req = CreateAuthRequest(url, accessToken);
-        using HttpResponseMessage resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
-        resp.EnsureSuccessStatusCode();
+        using HttpRequestMessage request = CreateAuthRequest(url, accessToken);
+        using HttpResponseMessage response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        response.EnsureSuccessStatusCode();
 
-        await using Stream stream = await resp.Content.ReadAsStreamAsync(ct);
-        var json = await DeserializeJsonAsync<SpotifyPlaylistsResponse>(stream, ct);
+        await using Stream contentStream = await response.Content.ReadAsStreamAsync(ct);
+        SpotifyPlaylistsResponse? json = await DeserializeJsonAsync<SpotifyPlaylistsResponse>(contentStream, ct);
 
         if (json is null)
             throw new InvalidOperationException("Failed to deserialize Spotify playlists response.");
@@ -39,6 +43,11 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
         return MapToPlaylistPageDto(json);
     }
 
+    /// <summary>
+    /// Builds the playlists endpoint URL, preserving offsets if the provided token is relative.
+    /// </summary>
+    /// <param name="pageToken">The supplied page token or next URL from Spotify.</param>
+    /// <returns>Fully qualified request path.</returns>
     private string BuildPlaylistsUrl(string? pageToken)
     {
         if (!string.IsNullOrWhiteSpace(pageToken) && Uri.IsWellFormedUriString(pageToken, UriKind.Absolute))
@@ -52,25 +61,38 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
         return $"me/playlists?limit={limit}{offsetParam}";
     }
 
+    /// <summary>
+    /// Creates an authenticated GET request with the supplied bearer token.
+    /// </summary>
+    /// <param name="url">Relative or absolute request URL.</param>
+    /// <param name="accessToken">Bearer token provided by Spotify.</param>
+    /// <returns>A configured <see cref="HttpRequestMessage"/>.</returns>
     private HttpRequestMessage CreateAuthRequest(string url, string accessToken)
     {
-        var req = new HttpRequestMessage(HttpMethod.Get, url);
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        return req;
+        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        return request;
     }
 
+    /// <summary>
+    /// Deserializes JSON content using the shared serializer options.
+    /// </summary>
+    /// <typeparam name="T">Target type.</typeparam>
+    /// <param name="stream">Content stream.</param>
+    /// <param name="ct">Cancellation token.</param>
     private static async Task<T?> DeserializeJsonAsync<T>(Stream stream, CancellationToken ct = default)
     {
-        return await JsonSerializer.DeserializeAsync<T>(
-            stream,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
-            ct
-        );
+        return await JsonSerializer.DeserializeAsync<T>(stream, SerializerOptions, ct);
     }
 
+    /// <summary>
+    /// Maps a Spotify playlists response into the API DTO model.
+    /// </summary>
+    /// <param name="json">Spotify response payload.</param>
+    /// <returns>DTO populated with playlist items.</returns>
     private static PlaylistPageDto MapToPlaylistPageDto(SpotifyPlaylistsResponse json)
     {
-        var items = json.Items.Select(i => new PlaylistItemDto
+        List<PlaylistItemDto> items = json.Items.Select(i => new PlaylistItemDto
             {
                 PlaylistId = i.Id ?? string.Empty,
                 Name = i.Name ?? string.Empty,
@@ -88,8 +110,8 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
         };
     }
 
-    /// <inheritdoc/>
-    public async Task<PlaylistTracksDTO> GetPlaylistTracks(string accessToken, string playlistId, int? offset,
+    /// <inheritdoc />
+    public async Task<PlaylistTracksDTO> GetPlaylistTracksAsync(string accessToken, string playlistId, int? offset,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(accessToken))
@@ -99,18 +121,18 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
 
         string url = $"playlists/{playlistId}/tracks?limit={_config.GetSpotifyPlaylistsPageSize()}&offset={offset}";
 
-        using HttpRequestMessage req = CreateAuthRequest(url, accessToken);
-        using HttpResponseMessage resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
-        resp.EnsureSuccessStatusCode();
+        using HttpRequestMessage request = CreateAuthRequest(url, accessToken);
+        using HttpResponseMessage response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        response.EnsureSuccessStatusCode();
 
-        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
-        var spotifyResponse = await DeserializeJsonAsync<PlaylistTracksResponse>(stream, ct);
+        await using Stream responseStream = await response.Content.ReadAsStreamAsync(ct);
+        PlaylistTracksResponse? spotifyResponse = await DeserializeJsonAsync<PlaylistTracksResponse>(responseStream, ct);
 
-        if (spotifyResponse == null)
+        if (spotifyResponse is null)
             throw new InvalidOperationException("Failed to deserialize Spotify playlist tracks response.");
 
         List<SpotifyTrack> tracks = spotifyResponse.Items
-            .Where(i => i.Track != null)
+            .Where(i => i.Track is not null)
             .Select(i => new SpotifyTrack
                 {
                     Id = i.Track.Id ?? string.Empty,
@@ -121,19 +143,19 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
                             Name = a.Name
                         }
                     ).ToList() ?? new List<ArtistDTO>(),
-                    Album = i.Track.Album != null
+                    Album = i.Track.Album is not null
                         ? new AlbumDTO
                         {
                             Id = i.Track.Album.Id,
                             Images = i.Track.Album.Images?
-                                .Select(img => new SpotifyImage() { Url = img.Url })
+                                .Select(img => new SpotifyImage { Url = img.Url })
                                 .ToList() ?? new List<SpotifyImage>()
                         }
-                        : throw new NullReferenceException("None album for this track")
+                        : throw new InvalidOperationException("Track is missing album metadata.")
                 }
             ).ToList();
 
-        return new PlaylistTracksDTO()
+        return new PlaylistTracksDTO
         {
             PlaylistId = playlistId,
             Limit = spotifyResponse.Limit,
@@ -149,27 +171,27 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
             throw new ArgumentException("accessToken cannot be null or empty.", nameof(accessToken));
 
         const string url = "me/tracks?limit=1&offset=0";
-        using HttpRequestMessage req = CreateAuthRequest(url, accessToken);
-        using HttpResponseMessage resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        using HttpRequestMessage request = CreateAuthRequest(url, accessToken);
+        using HttpResponseMessage response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
-        if (!resp.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode)
         {
-            if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                 throw new UnauthorizedAccessException("Spotify access token is invalid or expired.");
 
-            int statusCode = (int)resp.StatusCode;
-            if (resp.StatusCode == (HttpStatusCode)429 || (statusCode >= 500 && statusCode <= 599))
+            int statusCode = (int)response.StatusCode;
+            if (response.StatusCode == (HttpStatusCode)429 || (statusCode >= 500 && statusCode <= 599))
                 throw new RecoverableSpotifyApiException(
-                    $"Spotify returned {(int)resp.StatusCode} ({resp.StatusCode}) when fetching saved tracks total."
+                    $"Spotify returned {(int)response.StatusCode} ({response.StatusCode}) when fetching saved tracks total."
                 );
 
             throw new HttpRequestException(
-                $"Failed to retrieve saved tracks total. Status code: {(int)resp.StatusCode} ({resp.StatusCode})."
+                $"Failed to retrieve saved tracks total. Status code: {(int)response.StatusCode} ({response.StatusCode})."
             );
         }
 
-        await using Stream stream = await resp.Content.ReadAsStreamAsync(ct);
-        using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        await using Stream responseStream = await response.Content.ReadAsStreamAsync(ct);
+        using JsonDocument doc = await JsonDocument.ParseAsync(responseStream, cancellationToken: ct);
 
         if (doc.RootElement.TryGetProperty("total", out JsonElement totalElement) && totalElement.TryGetInt32(out int total))
             return total;

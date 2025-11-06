@@ -1,7 +1,5 @@
 ﻿namespace Api.Models
 {
-    using System;
-
     /// <summary>
     /// Represents an application session for a user/device.
     /// </summary>

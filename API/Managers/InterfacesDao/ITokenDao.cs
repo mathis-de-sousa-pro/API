@@ -1,5 +1,5 @@
-﻿using Api.Models;
-using System.Data.Common;
+﻿using System.Data.Common;
+using Api.Models;
 
 namespace Api.Managers.InterfacesDao;
 

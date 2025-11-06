@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-
 namespace API.Services.Masking;
 
 public interface IMaskingHelper

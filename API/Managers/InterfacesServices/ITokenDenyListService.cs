@@ -1,7 +1,5 @@
 ﻿namespace API.Managers.InterfacesServices;
 
-using System.Threading.Tasks;
-
 /// <summary>
 /// Provides methods to manage a denylist of refresh tokens.
 /// </summary>

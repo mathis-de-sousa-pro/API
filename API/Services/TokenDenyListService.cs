@@ -12,15 +12,23 @@ public class TokenDenyListService(IDenylistedRefreshDao dao, IClockService clock
     /// <inheritdoc />
     public Task<bool> IsDeniedAsync(string refreshTokenHash)
     {
-        var now = _clock.GetUtcNow();
+        if (string.IsNullOrWhiteSpace(refreshTokenHash))
+            throw new ArgumentException("refreshTokenHash cannot be null or whitespace.", nameof(refreshTokenHash));
+
+        DateTime now = _clock.GetUtcNow();
         return _dao.ExistsAsync(refreshTokenHash, now);
     }
 
     /// <inheritdoc />
     public Task AddAsync(string refreshTokenHash, string reason, DateTime? expiresAtUtc)
     {
-        var now = _clock.GetUtcNow();
-        var exp = expiresAtUtc ?? now.AddDays(90);
-        return _dao.UpsertAsync(refreshTokenHash, reason ?? "logout", now, exp);
+        if (string.IsNullOrWhiteSpace(refreshTokenHash))
+            throw new ArgumentException("refreshTokenHash cannot be null or whitespace.", nameof(refreshTokenHash));
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("reason cannot be null or whitespace.", nameof(reason));
+
+        DateTime now = _clock.GetUtcNow();
+        DateTime expiry = expiresAtUtc ?? now.AddDays(90);
+        return _dao.UpsertAsync(refreshTokenHash, reason, now, expiry);
     }
 }

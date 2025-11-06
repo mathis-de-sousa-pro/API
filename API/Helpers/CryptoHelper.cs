@@ -2,52 +2,55 @@
 using System.Text;
 using Api.Managers.InterfacesHelpers;
 
-namespace API.Helpers
+namespace API.Helpers;
+
+/// <summary>
+/// Fournit des méthodes utilitaires cryptographiques.
+/// </summary>
+public class CryptoHelper : ICryptoHelper
 {
     /// <summary>
-    /// Fournit des méthodes utilitaires cryptographiques.
+    /// Converts raw bytes to a Base64 URL-safe string.
     /// </summary>
-    public class CryptoHelper : ICryptoHelper
+    /// <param name="data">Input byte array.</param>
+    private static string ToBase64Url(byte[] data)
+        => Convert.ToBase64String(data)
+            .Replace("+", "-")
+            .Replace("/", "_")
+            .TrimEnd('=');
+
+    /// <summary>
+    /// Generates a buffer of cryptographically strong random bytes.
+    /// </summary>
+    /// <param name="length">Desired byte length.</param>
+    private static byte[] RandomBytes(int length)
     {
-        private static string ToBase64Url(byte[] data)
-        {
-            return Convert.ToBase64String(data)
-                .Replace("+", "-")
-                .Replace("/", "_")
-                .TrimEnd('=');
-        }
+        if (length <= 0)
+            throw new ArgumentException("length must be positive.", nameof(length));
 
-        private static byte[] RandomBytes(int length)
-        {
-            if (length <= 0) throw new ArgumentException("length must be positive.", nameof(length));
-            var bytes = new byte[length];
-            RandomNumberGenerator.Fill(bytes);
-            return bytes;
-        }
+        byte[] bytes = new byte[length];
+        RandomNumberGenerator.Fill(bytes);
+        return bytes;
+    }
 
-        /// <inheritdoc />
-        public string GenerateState(int byteLength)
-        {
-            if (byteLength <= 0)
-                throw new ArgumentException("byteLength must be positive.", nameof(byteLength));
+    /// <inheritdoc />
+    public string GenerateState(int byteLength)
+    {
+        if (byteLength <= 0)
+            throw new ArgumentException("byteLength must be positive.", nameof(byteLength));
 
-            return ToBase64Url(RandomBytes(byteLength));
-        }
+        return ToBase64Url(RandomBytes(byteLength));
+    }
 
-        /// <inheritdoc />
-        public void GeneratePkce(out string codeVerifier, out string codeChallenge)
-        {
-            // RFC 7636: code_verifier = high-entropy cryptographic random string (43..128 chars)
-            byte[] verifierBytes = RandomBytes(32);
-            codeVerifier = ToBase64Url(verifierBytes);
+    /// <inheritdoc />
+    public void GeneratePkce(out string codeVerifier, out string codeChallenge)
+    {
+        byte[] verifierBytes = RandomBytes(32);
+        codeVerifier = ToBase64Url(verifierBytes);
 
-            byte[] sha256;
-            using (var sha = SHA256.Create())
-            {
-                sha256 = sha.ComputeHash(Encoding.ASCII.GetBytes(codeVerifier));
-            }
+        using SHA256 sha = SHA256.Create();
+        byte[] sha256 = sha.ComputeHash(Encoding.ASCII.GetBytes(codeVerifier));
 
-            codeChallenge = ToBase64Url(sha256);
-        }
+        codeChallenge = ToBase64Url(sha256);
     }
 }

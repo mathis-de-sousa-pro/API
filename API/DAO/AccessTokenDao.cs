@@ -18,17 +18,17 @@ public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
 
         const string sql = "delete from accesstoken where SessionId = @sid";
 
-        var ct = CancellationToken.None;
-        await using DbConnection conn = await factory.CreateOpenAsync(ct);
-        await using var cmd = conn.CreateCommand();
+        CancellationToken cancellationToken = CancellationToken.None;
+        await using DbConnection conn = await factory.CreateOpenAsync(cancellationToken);
+        await using DbCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
 
-        var param = cmd.CreateParameter();
+        DbParameter param = cmd.CreateParameter();
         param.ParameterName = "@sid";
         param.Value = sessionId;
         cmd.Parameters.Add(param);
 
-        await cmd.ExecuteNonQueryAsync(ct);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -36,15 +36,16 @@ public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
     {
         if (string.IsNullOrWhiteSpace(sessionId))
             throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
-        if (conn is null || tx is null) throw new ArgumentNullException(nameof(conn));
+        ArgumentNullException.ThrowIfNull(conn);
+        ArgumentNullException.ThrowIfNull(tx);
 
         const string sql = "delete from accesstoken where SessionId = @sid";
 
-        using var cmd = conn.CreateCommand();
+        using DbCommand cmd = conn.CreateCommand();
         cmd.Transaction = tx;
         cmd.CommandText = sql;
 
-        var param = cmd.CreateParameter();
+        DbParameter param = cmd.CreateParameter();
         param.ParameterName = "@sid";
         param.Value = sessionId;
         cmd.Parameters.Add(param);
@@ -69,21 +70,21 @@ public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
         await using DbConnection conn = await factory.CreateOpenAsync(ct);
         string? result = null;
 
-        using var cmd = conn.CreateCommand();
+        using DbCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
 
-        var pSid = cmd.CreateParameter();
+        DbParameter pSid = cmd.CreateParameter();
         pSid.ParameterName = "@sid";
         pSid.Value = sessionId;
         cmd.Parameters.Add(pSid);
 
-        var pNow = cmd.CreateParameter();
+        DbParameter pNow = cmd.CreateParameter();
         pNow.ParameterName = "@now";
         pNow.Value = nowUtc;
         cmd.Parameters.Add(pNow);
 
         object? scalar = await cmd.ExecuteScalarAsync(ct);
-        if (!(scalar is null || scalar == DBNull.Value))
+        if (scalar is not null && scalar != DBNull.Value)
             result = Convert.ToString(scalar);
 
         return result;
@@ -108,25 +109,25 @@ public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
 
         await using DbConnection conn = await factory.CreateOpenAsync(ct);
 
-        using var cmd = conn.CreateCommand();
+        using DbCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
 
-        var pSid = cmd.CreateParameter();
+        DbParameter pSid = cmd.CreateParameter();
         pSid.ParameterName = "@sid";
         pSid.Value = sessionId;
         cmd.Parameters.Add(pSid);
 
-        var pTok = cmd.CreateParameter();
+        DbParameter pTok = cmd.CreateParameter();
         pTok.ParameterName = "@tok";
         pTok.Value = accessToken;
         cmd.Parameters.Add(pTok);
 
-        var pExp = cmd.CreateParameter();
+        DbParameter pExp = cmd.CreateParameter();
         pExp.ParameterName = "@exp";
         pExp.Value = expiresAtUtc;
         cmd.Parameters.Add(pExp);
 
-        var pNow = cmd.CreateParameter();
+        DbParameter pNow = cmd.CreateParameter();
         pNow.ParameterName = "@now";
         pNow.Value = nowUtc;
         cmd.Parameters.Add(pNow);

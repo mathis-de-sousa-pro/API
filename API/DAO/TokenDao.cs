@@ -1,14 +1,10 @@
-﻿using Api.Managers.InterfacesDao;
+﻿using System.Data;
+using System.Data.Common;
+using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
 using Api.Models;
-using System.Data.Common;
 
 namespace API.DAO;
-
-using System;
-using System.Data;
-using System.Threading;
-using System.Threading.Tasks;
 
 /// <summary>
 /// Data Access Object for managing TokenSet entries in the database.

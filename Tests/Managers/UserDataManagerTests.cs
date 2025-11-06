@@ -1,4 +1,4 @@
-﻿using System.Linq;
+﻿using System.Text.Json;
 using API.DTO;
 using API.Errors.Exceptions;
 using API.Managers;
@@ -43,7 +43,7 @@ public class UserDataManagerTests
         accessTokenDao.Setup(a => a.GetValidBySessionAsync(sessionId, now, It.IsAny<CancellationToken>()))
             .ReturnsAsync("access");
         playlistCacheDao.Setup(p => p.GetPageJsonAsync(sessionId, "", now, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(System.Text.Json.JsonSerializer.Serialize(new PlaylistPageDto()));
+            .ReturnsAsync(JsonSerializer.Serialize(new PlaylistPageDto()));
 
         var logger = new Mock<ILogger<UserDataManager>>();
 

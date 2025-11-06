@@ -6,130 +6,125 @@ using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Moq;
 
-namespace Tests.Managers
+namespace Tests.Managers;
+
+public class PlaylistManagerTests
 {
-    public class PlaylistManagerTests
+    private readonly Mock<ITokenService> _tokenServiceMock;
+    private readonly Mock<ISpotifyApiHelper> _spotifyApiHelperMock;
+    private readonly IMemoryCache _memoryCache;
+    private readonly PlaylistManager _playlistManager;
+
+    public PlaylistManagerTests()
     {
-        private readonly Mock<ITokenService> _tokenServiceMock;
-        private readonly Mock<ISpotifyApiHelper> _spotifyApiHelperMock;
-        private readonly IMemoryCache _memoryCache;
-        private readonly PlaylistManager _playlistManager;
+        _tokenServiceMock = new Mock<ITokenService>();
+        _spotifyApiHelperMock = new Mock<ISpotifyApiHelper>();
+        _memoryCache = new MemoryCache(new MemoryCacheOptions());
 
-        public PlaylistManagerTests()
+        _playlistManager = new PlaylistManager(_tokenServiceMock.Object, _spotifyApiHelperMock.Object, _memoryCache);
+    }
+
+    [Fact]
+    public async Task GetTracksByPlaylist_ShouldFetchTracksAndSetNextOffset()
+    {
+        const string sessionId = "session123";
+        const string playlistId = "playlistABC";
+        const string accessToken = "tokenXYZ";
+
+        PlaylistTracksDTO expectedDto = new PlaylistTracksDTO
         {
-            _tokenServiceMock = new Mock<ITokenService>();
-            _spotifyApiHelperMock = new Mock<ISpotifyApiHelper>();
-            _memoryCache = new MemoryCache(new MemoryCacheOptions());
+            PlaylistId = playlistId,
+            Limit = 50
+        };
 
-            _playlistManager = new PlaylistManager(_tokenServiceMock.Object, _spotifyApiHelperMock.Object, _memoryCache);
-        }
+        _tokenServiceMock
+            .Setup(t => t.GetAccessTokenAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(accessToken);
 
-        [Fact]
-        public async Task GetTracksByPlaylist_ShouldFetchTracksAndSetNextOffset()
-        {
-            const string sessionId = "session123";
-            const string playlistId = "playlistABC";
-            const string accessToken = "tokenXYZ";
+        _spotifyApiHelperMock
+            .Setup(s => s.GetPlaylistTracksAsync(accessToken, playlistId, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedDto);
 
-            var expectedDto = new PlaylistTracksDTO()
-            {
-                PlaylistId = playlistId,
-                Limit = 50
-            };
+        PlaylistTracksDTO result = await _playlistManager.GetTracksByPlaylist(sessionId, playlistId, null);
 
-            _tokenServiceMock
-                .Setup(t => t.GetAccessTokenAsync(sessionId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(accessToken);
+        result.Should().NotBeNull();
+        result.PlaylistId.Should().Be(playlistId);
+        result.Offset.Should().Be(0);
+        result.NextOffset.Should().Be(50);
+        result.Limit.Should().Be(50);
 
-            _spotifyApiHelperMock
-                .Setup(s => s.GetPlaylistTracks(accessToken, playlistId, 0, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(expectedDto);
+        _memoryCache.TryGetValue($"playlist_offset_{sessionId}_{playlistId}", out int cachedOffset);
+        cachedOffset.Should().Be(50);
 
-            // Act
-            var result = await _playlistManager.GetTracksByPlaylist(sessionId, playlistId, null);
+        _tokenServiceMock.Verify(t => t.GetAccessTokenAsync(sessionId, It.IsAny<CancellationToken>()), Times.Once);
+        _spotifyApiHelperMock.Verify(s => s.GetPlaylistTracksAsync(accessToken, playlistId, 0, It.IsAny<CancellationToken>()), Times.Once);
+    }
 
-            // Assert
-            result.Should().NotBeNull();
-            result.PlaylistId.Should().Be(playlistId);
-            result.Offset.Should().Be(0);
-            result.NextOffset.Should().Be(50);
-            result.Limit.Should().Be(50);
+    [Fact]
+    public async Task GetTracksByPlaylist_ShouldUseProvidedOffset_WhenOffsetIsGiven()
+    {
+        const string sessionId = "session123";
+        const string playlistId = "playlistABC";
+        const string accessToken = "tokenXYZ";
+        const int customOffset = 100;
 
-            // verify memory cache updated
-            _memoryCache.TryGetValue($"playlist_offset_{sessionId}_{playlistId}", out int cachedOffset);
-            cachedOffset.Should().Be(50);
+        PlaylistTracksDTO expectedDto = new PlaylistTracksDTO { PlaylistId = playlistId, Limit = 25 };
 
-            _tokenServiceMock.Verify(t => t.GetAccessTokenAsync(sessionId, It.IsAny<CancellationToken>()), Times.Once);
-            _spotifyApiHelperMock.Verify(s => s.GetPlaylistTracks(accessToken, playlistId, 0, It.IsAny<CancellationToken>()), Times.Once);
-        }
+        _tokenServiceMock
+            .Setup(t => t.GetAccessTokenAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(accessToken);
 
-        [Fact]
-        public async Task GetTracksByPlaylist_ShouldUseProvidedOffset_WhenOffsetIsGiven()
-        {
-            // Arrange
-            const string sessionId = "session123";
-            const string playlistId = "playlistABC";
-            const string accessToken = "tokenXYZ";
-            const int customOffset = 100;
+        _spotifyApiHelperMock
+            .Setup(s => s.GetPlaylistTracksAsync(accessToken, playlistId, customOffset, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedDto);
 
-            var expectedDto = new PlaylistTracksDTO() { PlaylistId = playlistId, Limit = 25 };
+        PlaylistTracksDTO result = await _playlistManager.GetTracksByPlaylist(sessionId, playlistId, customOffset);
 
-            _tokenServiceMock
-                .Setup(t => t.GetAccessTokenAsync(sessionId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(accessToken);
+        result.Offset.Should().Be(customOffset);
+        result.NextOffset.Should().Be(customOffset + expectedDto.Limit);
 
-            _spotifyApiHelperMock
-                .Setup(s => s.GetPlaylistTracks(accessToken, playlistId, customOffset, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(expectedDto);
+        _memoryCache.TryGetValue($"playlist_offset_{sessionId}_{playlistId}", out int cachedOffset);
+        cachedOffset.Should().Be(customOffset + expectedDto.Limit);
+    }
 
-            var result = await _playlistManager.GetTracksByPlaylist(sessionId, playlistId, customOffset);
+    [Fact]
+    public async Task GetTracksByPlaylist_ShouldUseCachedOffset_WhenOffsetIsNull()
+    {
+        const string sessionId = "session123";
+        const string playlistId = "playlistABC";
+        const string accessToken = "tokenXYZ";
 
-            result.Offset.Should().Be(customOffset);
-            result.NextOffset.Should().Be(customOffset + expectedDto.Limit);
+        const int cachedOffset = 200;
+        _memoryCache.Set($"playlist_offset_{sessionId}_{playlistId}", cachedOffset);
 
-            _memoryCache.TryGetValue($"playlist_offset_{sessionId}_{playlistId}", out int cachedOffset);
-            cachedOffset.Should().Be(customOffset + expectedDto.Limit);
-        }
+        PlaylistTracksDTO expectedDto = new PlaylistTracksDTO { PlaylistId = playlistId, Limit = 10 };
 
-        [Fact]
-        public async Task GetTracksByPlaylist_ShouldUseCachedOffset_WhenOffsetIsNull()
-        {
-            const string sessionId = "session123";
-            const string playlistId = "playlistABC";
-            const string accessToken = "tokenXYZ";
+        _tokenServiceMock
+            .Setup(t => t.GetAccessTokenAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(accessToken);
 
-            int cachedOffset = 200;
-            _memoryCache.Set($"playlist_offset_{sessionId}_{playlistId}", cachedOffset);
+        _spotifyApiHelperMock
+            .Setup(s => s.GetPlaylistTracksAsync(accessToken, playlistId, cachedOffset, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedDto);
 
-            var expectedDto = new PlaylistTracksDTO() { PlaylistId = playlistId, Limit = 10 };
+        PlaylistTracksDTO result = await _playlistManager.GetTracksByPlaylist(sessionId, playlistId, null);
 
-            _tokenServiceMock
-                .Setup(t => t.GetAccessTokenAsync(sessionId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(accessToken);
+        result.Offset.Should().Be(cachedOffset);
+        result.NextOffset.Should().Be(cachedOffset + expectedDto.Limit);
 
-            _spotifyApiHelperMock
-                .Setup(s => s.GetPlaylistTracks(accessToken, playlistId, cachedOffset, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(expectedDto);
+        _memoryCache.TryGetValue($"playlist_offset_{sessionId}_{playlistId}", out int newOffset);
+        newOffset.Should().Be(cachedOffset + expectedDto.Limit);
+    }
 
-            var result = await _playlistManager.GetTracksByPlaylist(sessionId, playlistId, null);
+    [Fact]
+    public void Constructor_ShouldThrow_WhenDependenciesAreNull()
+    {
+        Action act1 = () => new PlaylistManager(null!, _spotifyApiHelperMock.Object, _memoryCache);
+        Action act2 = () => new PlaylistManager(_tokenServiceMock.Object, null!, _memoryCache);
+        Action act3 = () => new PlaylistManager(_tokenServiceMock.Object, _spotifyApiHelperMock.Object, null!);
 
-            result.Offset.Should().Be(cachedOffset);
-            result.NextOffset.Should().Be(cachedOffset + expectedDto.Limit);
-
-            _memoryCache.TryGetValue($"playlist_offset_{sessionId}_{playlistId}", out int newOffset);
-            newOffset.Should().Be(cachedOffset + expectedDto.Limit);
-        }
-
-        [Fact]
-        public void Constructor_ShouldThrow_WhenDependenciesAreNull()
-        {
-            Action act1 = () => new PlaylistManager(null!, _spotifyApiHelperMock.Object, _memoryCache);
-            Action act2 = () => new PlaylistManager(_tokenServiceMock.Object, null!, _memoryCache);
-            Action act3 = () => new PlaylistManager(_tokenServiceMock.Object, _spotifyApiHelperMock.Object, null!);
-
-            act1.Should().Throw<ArgumentNullException>();
-            act2.Should().Throw<ArgumentNullException>();
-            act3.Should().Throw<ArgumentNullException>();
-        }
+        act1.Should().Throw<ArgumentNullException>();
+        act2.Should().Throw<ArgumentNullException>();
+        act3.Should().Throw<ArgumentNullException>();
     }
 }

@@ -1,7 +1,5 @@
 ﻿namespace API.DTO;
 
-using System;
-
 /// <summary>
 /// DTO representing the response for the start of authentication, including the authorization URL and state.
 /// </summary>
