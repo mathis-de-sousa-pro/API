@@ -11,6 +11,8 @@ import requests
 
 LIKED_PLAYLIST_ID = "liked-saved-tracks"
 LIKED_PLAYLIST_NAME = "Liked Songs"
+BASE_URL = ""
+SESSION_ID = ""
 
 
 def _env_bool(name: str, default: bool = True) -> bool:
@@ -40,8 +42,8 @@ def _coerce_int(value: Any) -> int | None:
 
 
 def main() -> None:
-    base_url = os.environ.get("SWIPEZ_BASE_URL")
-    session_id = os.environ.get("SWIPEZ_SESSION_ID")
+    base_url = BASE_URL
+    session_id = SESSION_ID
 
     if not base_url:
         print("❌ Missing SWIPEZ_BASE_URL environment variable.", file=sys.stderr)
