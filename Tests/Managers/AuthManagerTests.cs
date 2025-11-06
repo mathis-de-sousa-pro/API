@@ -313,7 +313,7 @@ public class AuthManagerTests
             a => a.LogAuthAsync(
                 "spotify",
                 "logout",
-                It.Is<object?>(o => o is not null),
+                It.Is<object?>(o => o != null),
                 sessionId,
                 "puid-1",
                 It.IsAny<CancellationToken>()),
@@ -363,7 +363,7 @@ public class AuthManagerTests
             a => a.LogAuthAsync(
                 "spotify",
                 "logout",
-                It.Is<object?>(o => o is not null),
+                It.Is<object?>(o => o != null),
                 sessionId,
                 null,
                 It.IsAny<CancellationToken>()),
