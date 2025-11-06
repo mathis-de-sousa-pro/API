@@ -1,4 +1,6 @@
-﻿using System.Net;
+#nullable enable
+
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using API.DTO;
@@ -17,7 +19,7 @@ public class SpotifyApiHelperTests
 
     public SpotifyApiHelperTests()
     {
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         HttpClient httpClient = new HttpClient(handler.Object)
         {
             BaseAddress = new Uri("https://api.spotify.com/v1/")
@@ -35,7 +37,7 @@ public class SpotifyApiHelperTests
     [Fact]
     public async Task GetPlaylistsAsync_ReturnsPlaylists_OnValidResponse()
     {
-        var responseObj = new SpotifyPlaylistsResponse
+        SpotifyPlaylistsResponse responseObj = new SpotifyPlaylistsResponse
         {
             Items =
             [
@@ -54,7 +56,7 @@ public class SpotifyApiHelperTests
             Next = "next-token"
         };
         var json = JsonSerializer.Serialize(responseObj);
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -82,7 +84,7 @@ public class SpotifyApiHelperTests
     [Fact]
     public async Task GetPlaylistsAsync_Throws_OnInvalidJson()
     {
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -108,8 +110,8 @@ public class SpotifyApiHelperTests
     public async Task GetPlaylistTracks_ValidRequest_ReturnsPlaylistTracksDTO()
     {
         // Arrange
-        var accessToken = "valid_token";
-        var playlistId = "playlist123";
+        const string accessToken = "valid_token";
+        string playlistId = "playlist123";
         var offset = 0;
 
         var spotifyResponse = new PlaylistTracksResponse
@@ -142,7 +144,7 @@ public class SpotifyApiHelperTests
         };
 
         var json = JsonSerializer.Serialize(spotifyResponse);
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -162,7 +164,7 @@ public class SpotifyApiHelperTests
         var helper = new SpotifyApiHelper(client, _config.Object);
 
         // Act
-        var result = await helper.GetPlaylistTracks(accessToken, playlistId, offset);
+        PlaylistTracksDTO result = await helper.GetPlaylistTracksAsync(accessToken, playlistId, offset);
 
         // Assert
         Assert.NotNull(result);
@@ -184,11 +186,11 @@ public class SpotifyApiHelperTests
     public async Task GetPlaylistTracks_InvalidAccessToken_ThrowsArgumentException(string accessToken)
     {
         // Arrange
-        var playlistId = "playlist123";
+        string playlistId = "playlist123";
 
         // Act & Assert
-        var exception =
-            await Assert.ThrowsAsync<ArgumentException>(() => _helper.GetPlaylistTracks(accessToken, playlistId, 0)
+        ArgumentException exception =
+            await Assert.ThrowsAsync<ArgumentException>(() => _helper.GetPlaylistTracksAsync(accessToken, playlistId, 0)
             );
         Assert.Equal("accessToken", exception.ParamName);
     }
@@ -200,11 +202,11 @@ public class SpotifyApiHelperTests
     public async Task GetPlaylistTracks_InvalidPlaylistId_ThrowsArgumentException(string playlistId)
     {
         // Arrange
-        var accessToken = "valid_token";
+        const string accessToken = "valid_token";
 
         // Act & Assert
-        var exception =
-            await Assert.ThrowsAsync<ArgumentException>(() => _helper.GetPlaylistTracks(accessToken, playlistId, 0)
+        ArgumentException exception =
+            await Assert.ThrowsAsync<ArgumentException>(() => _helper.GetPlaylistTracksAsync(accessToken, playlistId, 0)
             );
         Assert.Equal("playlistId", exception.ParamName);
     }
@@ -213,10 +215,10 @@ public class SpotifyApiHelperTests
     public async Task GetPlaylistTracks_HttpRequestFails_ThrowsHttpRequestException()
     {
         // Arrange
-        var accessToken = "valid_token";
-        var playlistId = "playlist123";
+        const string accessToken = "valid_token";
+        string playlistId = "playlist123";
 
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -235,7 +237,7 @@ public class SpotifyApiHelperTests
         var helper = new SpotifyApiHelper(client, _config.Object);
 
         // Act & Assert
-        await Assert.ThrowsAsync<HttpRequestException>(() => helper.GetPlaylistTracks(accessToken, playlistId, 0)
+        await Assert.ThrowsAsync<HttpRequestException>(() => helper.GetPlaylistTracksAsync(accessToken, playlistId, 0)
         );
     }
 
@@ -243,10 +245,10 @@ public class SpotifyApiHelperTests
     public async Task GetPlaylistTracks_NullResponse_ThrowsInvalidOperationException()
     {
         // Arrange
-        var accessToken = "valid_token";
-        var playlistId = "playlist123";
+        const string accessToken = "valid_token";
+        string playlistId = "playlist123";
 
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -266,9 +268,9 @@ public class SpotifyApiHelperTests
         var helper = new SpotifyApiHelper(client, _config.Object);
 
         // Act & Assert
-        var exception =
+        ArgumentException exception =
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                helper.GetPlaylistTracks(accessToken, playlistId, 0)
+                helper.GetPlaylistTracksAsync(accessToken, playlistId, 0)
             );
         Assert.Contains("Failed to deserialize", exception.Message);
     }
@@ -277,8 +279,8 @@ public class SpotifyApiHelperTests
     public async Task GetPlaylistTracks_TracksWithNullFields_HandlesGracefully()
     {
         // Arrange
-        var accessToken = "valid_token";
-        var playlistId = "playlist123";
+        const string accessToken = "valid_token";
+        string playlistId = "playlist123";
 
         var spotifyResponse = new PlaylistTracksResponse
         {
@@ -304,7 +306,7 @@ public class SpotifyApiHelperTests
         };
 
         var json = JsonSerializer.Serialize(spotifyResponse);
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -324,7 +326,7 @@ public class SpotifyApiHelperTests
         var helper = new SpotifyApiHelper(client, _config.Object);
 
         // Act
-        var result = await helper.GetPlaylistTracks(accessToken, playlistId, 0);
+        PlaylistTracksDTO result = await helper.GetPlaylistTracksAsync(accessToken, playlistId, 0);
 
         // Assert
         Assert.NotNull(result);
@@ -340,8 +342,8 @@ public class SpotifyApiHelperTests
     public async Task GetPlaylistTracks_ItemsWithNullTrack_FiltersOut()
     {
         // Arrange
-        var accessToken = "valid_token";
-        var playlistId = "playlist123";
+        const string accessToken = "valid_token";
+        string playlistId = "playlist123";
 
         var spotifyResponse = new PlaylistTracksResponse
         {
@@ -368,7 +370,7 @@ public class SpotifyApiHelperTests
         };
 
         var json = JsonSerializer.Serialize(spotifyResponse);
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -388,7 +390,7 @@ public class SpotifyApiHelperTests
         var helper = new SpotifyApiHelper(client, _config.Object);
 
         // Act
-        var result = await helper.GetPlaylistTracks(accessToken, playlistId, 0);
+        PlaylistTracksDTO result = await helper.GetPlaylistTracksAsync(accessToken, playlistId, 0);
 
         // Assert
         Assert.NotNull(result);
@@ -402,12 +404,12 @@ public class SpotifyApiHelperTests
     public async Task GetPlaylistTracks_CancellationTokenCancelled_ThrowsOperationCanceledException()
     {
         // Arrange
-        var accessToken = "valid_token";
-        var playlistId = "playlist123";
+        const string accessToken = "valid_token";
+        string playlistId = "playlist123";
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -424,7 +426,7 @@ public class SpotifyApiHelperTests
 
         // Act & Assert
         await Assert.ThrowsAsync<TaskCanceledException>(() =>
-            helper.GetPlaylistTracks(accessToken, playlistId, 0, cts.Token)
+            helper.GetPlaylistTracksAsync(accessToken, playlistId, 0, cts.Token)
         );
     }
 
@@ -444,7 +446,7 @@ public class SpotifyApiHelperTests
         };
 
         HttpRequestMessage capturedRequest = null;
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -469,7 +471,7 @@ public class SpotifyApiHelperTests
         var helper = new SpotifyApiHelper(client, _config.Object);
 
         // Act
-        await helper.GetPlaylistTracks(accessToken, playlistId, offset);
+        await helper.GetPlaylistTracksAsync(accessToken, playlistId, offset);
 
         // Assert
         Assert.NotNull(capturedRequest);
@@ -484,7 +486,7 @@ public class SpotifyApiHelperTests
     [Fact]
     public async Task GetSavedTracksTotalAsync_ParsesTotal()
     {
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -514,7 +516,7 @@ public class SpotifyApiHelperTests
     [InlineData(500)]
     public async Task GetSavedTracksTotalAsync_Handles429Or5xx(int statusCode)
     {
-        var handler = new Mock<HttpMessageHandler>();
+        Mock<HttpMessageHandler> handler = new Mock<HttpMessageHandler>();
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",

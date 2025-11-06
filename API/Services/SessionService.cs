@@ -1,4 +1,6 @@
-﻿using System.Data.Common;
+#nullable enable
+
+using System.Data.Common;
 using Api.Managers.InterfacesDao;
 using Api.Managers.InterfacesServices;
 using API.Managers.InterfacesServices;
@@ -18,8 +20,8 @@ public class SessionService(ISessionDao sessionDao, IIdGenerator ids) : ISession
     public async Task<string> CreateSessionAsync(string? deviceInfo, DateTime createdAtUtc, DateTime expiresAtUtc)
     {
         string id = _ids.NewSessionId();
-        var s = new AppSession(id, deviceInfo ?? string.Empty, createdAtUtc, createdAtUtc, expiresAtUtc);
-        await _sessionDao.InsertAsync(s);
+        AppSession session = new AppSession(id, deviceInfo ?? string.Empty, createdAtUtc, createdAtUtc, expiresAtUtc);
+        await _sessionDao.InsertAsync(session);
         return id;
     }
 

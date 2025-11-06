@@ -1,6 +1,6 @@
-﻿namespace API.Managers.InterfacesServices;
+#nullable enable
 
-using System.Threading.Tasks;
+namespace API.Managers.InterfacesServices;
 
 /// <summary>
 /// Provides methods to manage a denylist of refresh tokens.

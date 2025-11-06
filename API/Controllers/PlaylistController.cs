@@ -41,7 +41,7 @@ namespace API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public async Task<IActionResult> GetPlaylistTracks(
+        public async Task<IActionResult> GetPlaylistTracksAsync(
             [FromRoute(Name = "playlistId")] string playlistId, 
             [FromQuery(Name = "X-Session-Id")] string sessionId, 
             [FromQuery] int? offset,
