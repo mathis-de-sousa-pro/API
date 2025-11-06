@@ -38,6 +38,19 @@ Martin LEMOIGNE • Maxime CHARLET • Guilhem BARRIQUAND • Mathis DE SOUSA �
 
 ---
 
+## 🛡️ Middleware, error mapping & logging
+
+Pour garantir une observabilité cohérente, l’API s’appuie sur un flux unique mêlant middleware, mapper d’erreurs et persistance asynchrone :
+
+- **RequestLoggingMiddleware** mesure chaque requête entrante, applique un échantillonnage configurable et publie un `RequestLog` vers la file d’audit. Les options `Observability:RequestLogging:Enabled` et `Observability:RequestLogging:SampleRate` (dans `appsettings.json`) pilotent respectivement l’activation du suivi et le pourcentage de requêtes journalisées.
+- **ErrorHandlingMiddleware** capture les exceptions non gérées, attribue ou crée un `X-Correlation-Id`, construit une réponse JSON standardisée et enregistre les erreurs détaillées (avec masquage des données sensibles) lorsque `Observability:ErrorPersistence:Enabled` est activé. Les détails inclus sont limités via `Observability:ErrorPersistence:MaxDetail`.
+- **DefaultErrorMapper** convertit les exceptions connues (`InvalidStateException`, `RecoverableSpotifyApiException`, `HttpRequestException`, etc.) en codes d’erreur API explicites et en statuts HTTP adaptés, tout en garantissant un fallback uniforme pour les erreurs inattendues.
+- **AuditWriter** et l’`ObservabilityBackgroundWorker` consomment les logs et erreurs en tâche de fond pour les persister via les DAO (`IRequestLogDao`, `IErrorEventDao`, `IAuditEventDao`) tout en respectant la portée `Scoped` grâce à `IServiceScopeFactory`. Cela maintient l’écriture hors du thread HTTP et évite la pression sur les requêtes utilisateurs.
+
+L’ensemble forme une chaîne d’observabilité déterministe : corrélation d’une requête, mapping d’erreur homogène, masquage systématique des informations sensibles puis archivage fiable en base.
+
+---
+
 ## ⚙️ Installation & exécution locale
 
 ### Prérequis
